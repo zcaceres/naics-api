@@ -9,13 +9,19 @@ searchRoute.get("/search", (c) => {
     return c.json({ error: "Missing query parameter 'q'" }, 400);
   }
 
-  const limit = Math.min(Number(c.req.query("limit")) || 20, 100);
+  const limit = Math.max(1, Math.min(Number(c.req.query("limit")) || 20, 100));
+  const offset = Math.max(0, Number(c.req.query("offset")) || 0);
 
   try {
-    const results = search(q, limit);
-    return c.json(results);
-  } catch {
-    return c.json([], 200);
+    const { data, total } = search(q, limit, offset);
+    return c.json({ data, meta: { total, limit, offset } });
+  } catch (error) {
+    const msg = error instanceof Error ? error.message : String(error);
+    if (msg.includes("fts5:") || msg.includes("syntax error") || msg.includes("unterminated string") || msg.includes("no such column")) {
+      return c.json({ error: "Invalid search syntax" }, 400);
+    }
+    console.error("Search error:", error);
+    return c.json({ error: "Search failed" }, 500);
   }
 });
 
