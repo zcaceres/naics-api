@@ -27,6 +27,12 @@ export interface CrossReference {
   description: string;
 }
 
+export interface IndexEntry {
+  id: number;
+  code: string;
+  entry: string;
+}
+
 export interface PaginationMeta {
   total: number;
   limit: number;
@@ -65,6 +71,25 @@ const stmts = {
   ),
   getCrossReferences: db.prepare<CrossReference, [string]>(
     "SELECT id, code, description FROM cross_references WHERE code = ? ORDER BY id"
+  ),
+  getIndexEntries: db.prepare<IndexEntry, [string]>(
+    "SELECT id, code, entry FROM index_entries WHERE code = ? ORDER BY id"
+  ),
+  searchByLevel: db.prepare<SearchResult, [string, number, number, number]>(
+    `SELECT f.code, f.title, f.description, bm25(codes_fts, 0.0, 10.0, 1.0, 5.0) as rank
+     FROM codes_fts f
+     JOIN codes c ON c.code = f.code
+     WHERE codes_fts MATCH ?
+     AND c.level = ?
+     ORDER BY rank
+     LIMIT ? OFFSET ?`
+  ),
+  countSearchByLevel: db.prepare<{ count: number }, [string, number]>(
+    `SELECT COUNT(*) as count
+     FROM codes_fts f
+     JOIN codes c ON c.code = f.code
+     WHERE codes_fts MATCH ?
+     AND c.level = ?`
   ),
 };
 
@@ -121,11 +146,20 @@ export function getDescendants(
 export function search(
   query: string,
   limit: number = 20,
-  offset: number = 0
+  offset: number = 0,
+  level?: number
 ): { data: SearchResult[]; total: number } {
-  const data = stmts.search.all(query, limit, offset);
-  const countRow = stmts.countSearch.get(query);
-  const total = countRow?.count ?? 0;
+  let data: SearchResult[];
+  let total: number;
+
+  if (level !== undefined) {
+    data = stmts.searchByLevel.all(query, level, limit, offset);
+    total = stmts.countSearchByLevel.get(query, level)?.count ?? 0;
+  } else {
+    data = stmts.search.all(query, limit, offset);
+    total = stmts.countSearch.get(query)?.count ?? 0;
+  }
+
   return { data, total };
 }
 
@@ -135,4 +169,24 @@ export function getSectors(): NaicsCode[] {
 
 export function getCrossReferences(code: string): CrossReference[] {
   return stmts.getCrossReferences.all(code);
+}
+
+export function getIndexEntries(code: string): IndexEntry[] {
+  return stmts.getIndexEntries.all(code);
+}
+
+export function getCodesBatch(codes: string[]): NaicsCode[] {
+  if (codes.length === 0) return [];
+  const placeholders = codes.map(() => "?").join(",");
+  const stmt = db.prepare<NaicsCode, string[]>(
+    `SELECT code, title, description, level, parent_code FROM codes WHERE code IN (${placeholders})`
+  );
+  const results = stmt.all(...codes);
+  const resultMap = new Map(results.map((r) => [r.code, r]));
+  const ordered: NaicsCode[] = [];
+  for (const code of codes) {
+    const found = resultMap.get(code);
+    if (found) ordered.push(found);
+  }
+  return ordered;
 }

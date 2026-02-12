@@ -1,0 +1,422 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "NAICS Code API",
+    "version": "2.1.0",
+    "description": "Free API for 2022 NAICS (North American Industry Classification System) codes. All successful responses use { data, meta? } envelope. Errors use { error }.",
+    "license": { "name": "Public Domain" }
+  },
+  "servers": [{ "url": "/api" }],
+  "paths": {
+    "/sectors": {
+      "get": {
+        "summary": "List all top-level NAICS sectors",
+        "operationId": "getSectors",
+        "tags": ["Codes"],
+        "responses": {
+          "200": {
+            "description": "List of 20 top-level sectors",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/NaicsCode" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/naics": {
+      "get": {
+        "summary": "Batch lookup multiple NAICS codes",
+        "operationId": "batchLookup",
+        "tags": ["Codes"],
+        "parameters": [
+          {
+            "name": "codes",
+            "in": "query",
+            "required": true,
+            "description": "Comma-separated NAICS codes (max 50)",
+            "schema": { "type": "string" },
+            "example": "722511,722513,111110"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Found codes in requested order (missing codes omitted)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/NaicsCode" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" }
+        }
+      }
+    },
+    "/naics/{code}": {
+      "get": {
+        "summary": "Look up a specific NAICS code",
+        "operationId": "getCode",
+        "tags": ["Codes"],
+        "parameters": [
+          { "$ref": "#/components/parameters/NaicsCodePath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "NAICS code details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": { "$ref": "#/components/schemas/NaicsCode" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/naics/{code}/children": {
+      "get": {
+        "summary": "Get direct children of a code",
+        "operationId": "getChildren",
+        "tags": ["Hierarchy"],
+        "parameters": [
+          { "$ref": "#/components/parameters/NaicsCodePath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Direct child codes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/NaicsCode" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/naics/{code}/ancestors": {
+      "get": {
+        "summary": "Get full ancestor chain up to sector",
+        "operationId": "getAncestors",
+        "tags": ["Hierarchy"],
+        "parameters": [
+          { "$ref": "#/components/parameters/NaicsCodePath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ancestor chain from the code itself up to the sector",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/NaicsCode" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/naics/{code}/descendants": {
+      "get": {
+        "summary": "Get all codes below a given code (paginated)",
+        "operationId": "getDescendants",
+        "tags": ["Hierarchy"],
+        "parameters": [
+          { "$ref": "#/components/parameters/NaicsCodePath" },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 100, "minimum": 1, "maximum": 500 },
+            "description": "Maximum results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0, "minimum": 0 },
+            "description": "Number of results to skip"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated descendant codes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/NaicsCode" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/PaginationMeta" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/naics/{code}/cross-references": {
+      "get": {
+        "summary": "Get cross-references for a code",
+        "operationId": "getCrossReferences",
+        "tags": ["Related Data"],
+        "parameters": [
+          { "$ref": "#/components/parameters/NaicsCodePath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Cross-reference entries",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/CrossReference" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/naics/{code}/index-entries": {
+      "get": {
+        "summary": "Get index entries (keyword synonyms) for a code",
+        "operationId": "getIndexEntries",
+        "tags": ["Related Data"],
+        "parameters": [
+          { "$ref": "#/components/parameters/NaicsCodePath" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Index entry keywords",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/IndexEntry" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/NotFound" }
+        }
+      }
+    },
+    "/search": {
+      "get": {
+        "summary": "Full-text search with BM25 ranking",
+        "operationId": "search",
+        "tags": ["Search"],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "Search query (FTS5 syntax supported)",
+            "schema": { "type": "string" },
+            "example": "restaurant"
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": { "type": "integer", "default": 20, "minimum": 1, "maximum": 100 },
+            "description": "Maximum results to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": { "type": "integer", "default": 0, "minimum": 0 },
+            "description": "Number of results to skip"
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 2, "maximum": 6 },
+            "description": "Filter results by NAICS hierarchy level (2=sector, 3=subsector, 4=industry group, 5=industry, 6=national industry)"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Paginated search results ranked by relevance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": ["data", "meta"],
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/SearchResult" }
+                    },
+                    "meta": { "$ref": "#/components/schemas/PaginationMeta" }
+                  }
+                }
+              }
+            }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "500": {
+            "description": "Search failed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "NaicsCodePath": {
+        "name": "code",
+        "in": "path",
+        "required": true,
+        "description": "NAICS code (2-6 digits or range like 31-33)",
+        "schema": { "type": "string", "pattern": "^(\\d{2,6}|\\d{2}-\\d{2})$" },
+        "example": "722511"
+      }
+    },
+    "schemas": {
+      "NaicsCode": {
+        "type": "object",
+        "required": ["code", "title", "level"],
+        "properties": {
+          "code": { "type": "string", "example": "722511" },
+          "title": { "type": "string", "example": "Full-Service Restaurants" },
+          "description": { "type": "string", "nullable": true },
+          "level": { "type": "integer", "minimum": 2, "maximum": 6, "example": 6 },
+          "parent_code": { "type": "string", "nullable": true, "example": "72251" }
+        }
+      },
+      "SearchResult": {
+        "type": "object",
+        "required": ["code", "title", "rank"],
+        "properties": {
+          "code": { "type": "string", "example": "722511" },
+          "title": { "type": "string", "example": "Full-Service Restaurants" },
+          "description": { "type": "string", "nullable": true },
+          "rank": { "type": "number", "description": "BM25 relevance score (lower is more relevant)" }
+        }
+      },
+      "CrossReference": {
+        "type": "object",
+        "required": ["id", "code", "description"],
+        "properties": {
+          "id": { "type": "integer" },
+          "code": { "type": "string" },
+          "description": { "type": "string" }
+        }
+      },
+      "IndexEntry": {
+        "type": "object",
+        "required": ["id", "code", "entry"],
+        "properties": {
+          "id": { "type": "integer" },
+          "code": { "type": "string" },
+          "entry": { "type": "string", "example": "Full-service restaurants" }
+        }
+      },
+      "PaginationMeta": {
+        "type": "object",
+        "required": ["total", "limit", "offset"],
+        "properties": {
+          "total": { "type": "integer", "description": "Total matching results" },
+          "limit": { "type": "integer", "description": "Maximum results returned" },
+          "offset": { "type": "integer", "description": "Number of results skipped" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": { "type": "string" }
+        }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid request (bad format, invalid syntax, missing params)",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "NAICS code not found",
+        "content": {
+          "application/json": {
+            "schema": { "$ref": "#/components/schemas/Error" }
+          }
+        }
+      }
+    }
+  }
+}
