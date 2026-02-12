@@ -1,0 +1,16 @@
+{
+  "name": "naics",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  },
+  "dependencies": {
+    "hono": "^4.11.9",
+    "xlsx": "^0.18.5"
+  }
+}
