@@ -1,5 +1,6 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
+import { parseRangeCode, generateRangePrefixes, filterRangeCodes, paginateArray, orderByRequestedKeys } from "./transforms";
 
 const DB_PATH = join(import.meta.dir, "..", "data", "naics.db");
 
@@ -117,24 +118,16 @@ export function getDescendants(
   limit: number = 100,
   offset: number = 0
 ): { data: NaicsCode[]; total: number } {
-  // For range codes like "31-33", we need to match multiple prefixes
-  if (code.includes("-")) {
-    const [start, end] = code.split("-").map(Number);
-    let total = 0;
+  const range = parseRangeCode(code);
+  if (range) {
+    const prefixes = generateRangePrefixes(range);
     const allResults: NaicsCode[] = [];
-    for (let i = start; i <= end; i++) {
-      const prefix = `${i}%`;
-      const countRow = stmts.countDescendants.get(prefix, code);
-      total += countRow?.count ?? 0;
+    for (const prefix of prefixes) {
+      const rows = stmts.getDescendants.all(prefix, code, 10000, 0);
+      allResults.push(...rows);
     }
-    // Collect all matching rows then filter range codes, apply offset/limit manually
-    for (let i = start; i <= end; i++) {
-      const prefix = `${i}%`;
-      const rows = stmts.getDescendants.all(prefix, code, total, 0);
-      allResults.push(...rows.filter((r) => !r.code.includes("-")));
-    }
-    total = allResults.length;
-    return { data: allResults.slice(offset, offset + limit), total };
+    const filtered = filterRangeCodes(allResults);
+    return { data: paginateArray(filtered, offset, limit), total: filtered.length };
   }
 
   const countRow = stmts.countDescendants.get(`${code}%`, code);
@@ -182,11 +175,5 @@ export function getCodesBatch(codes: string[]): NaicsCode[] {
     `SELECT code, title, description, level, parent_code FROM codes WHERE code IN (${placeholders})`
   );
   const results = stmt.all(...codes);
-  const resultMap = new Map(results.map((r) => [r.code, r]));
-  const ordered: NaicsCode[] = [];
-  for (const code of codes) {
-    const found = resultMap.get(code);
-    if (found) ordered.push(found);
-  }
-  return ordered;
+  return orderByRequestedKeys(results, codes);
 }
