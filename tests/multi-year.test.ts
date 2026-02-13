@@ -55,6 +55,28 @@ describe("Year-prefixed routes (2022)", () => {
   });
 });
 
+describe("Year-prefixed OpenAPI route", () => {
+  test("GET /api/2022/openapi.json returns valid spec", async () => {
+    const { status, body } = await get("/api/2022/openapi.json");
+    expect(status).toBe(200);
+    expect(body.openapi).toBeDefined();
+  });
+});
+
+describe("Missing year databases", () => {
+  test("supported year without DB returns 404 with helpful message", async () => {
+    // 2017 and 2012 DBs are not built in the test environment
+    const { status, body } = await get("/api/2017/sectors");
+    // If DB exists, 200; if not, 404 with message (not 500)
+    if (status === 404) {
+      expect(body.error).toContain("2017");
+      expect(body.error).toContain("not available");
+    } else {
+      expect(status).toBe(200);
+    }
+  });
+});
+
 describe("Unsupported years", () => {
   test("GET /api/2000/sectors returns 404", async () => {
     const { status, body } = await get("/api/2000/sectors");

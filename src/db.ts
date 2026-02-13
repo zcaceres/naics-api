@@ -192,6 +192,10 @@ if (!databases.has(2022)) {
   }
 }
 
+export function hasDb(year: NaicsYear): boolean {
+  return databases.has(year);
+}
+
 export function getDb(year: NaicsYear = DEFAULT_YEAR): NaicsDatabase {
   const db = databases.get(year);
   if (!db) {

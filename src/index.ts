@@ -4,6 +4,7 @@ import codes from "./routes/codes";
 import search from "./routes/search";
 import spec from "./openapi.json";
 import { SUPPORTED_YEARS, DEFAULT_YEAR, type AppEnv } from "./types";
+import { hasDb } from "./db";
 
 const app = new Hono<AppEnv>();
 
@@ -20,9 +21,13 @@ app.use("/api/*", async (c, next) => {
 // Year-prefixed routes — register first so /api/2017/... matches before default
 for (const year of SUPPORTED_YEARS) {
   app.use(`/api/${year}/*`, async (c, next) => {
+    if (!hasDb(year)) {
+      return c.json({ error: `Data for year ${year} is not available. Build it with: bun run build-db ${year}` }, 404);
+    }
     c.set("year", year);
     await next();
   });
+  app.get(`/api/${year}/openapi.json`, (c) => c.json(spec));
   app.route(`/api/${year}`, codes);
   app.route(`/api/${year}`, search);
 }
