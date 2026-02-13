@@ -8,6 +8,14 @@ const app = new Hono();
 
 app.use("*", cors());
 
+// Static data — cache aggressively
+app.use("/api/*", async (c, next) => {
+  await next();
+  if (c.res.status === 200) {
+    c.res.headers.set("Cache-Control", "public, max-age=86400, s-maxage=604800");
+  }
+});
+
 app.get("/", (c) => {
   return c.json({
     name: "NAICS Code API",
@@ -47,6 +55,10 @@ app.get("/api/openapi.json", (c) => {
 
 app.route("/api", codes);
 app.route("/api", search);
+
+app.notFound((c) => {
+  return c.json({ error: "Not found" }, 404);
+});
 
 export default {
   port: 3456,

@@ -7,7 +7,7 @@ async function get(path: string) {
   const url = `http://localhost${path}`;
   const res = await fetch(new Request(url));
   const body = await res.json();
-  return { status: res.status, body };
+  return { status: res.status, body, headers: res.headers };
 }
 
 describe("GET /api/sectors", () => {
@@ -161,5 +161,35 @@ describe("GET /api/openapi.json", () => {
     const { status, body } = await get("/api/openapi.json");
     expect(status).toBe(200);
     expect(body.openapi).toBeDefined();
+  });
+});
+
+describe("404 catch-all", () => {
+  test("unknown route returns JSON 404", async () => {
+    const { status, body } = await get("/api/nonexistent");
+    expect(status).toBe(404);
+    expect(body.error).toBe("Not found");
+  });
+
+  test("unknown top-level route returns JSON 404", async () => {
+    const { status, body } = await get("/unknown");
+    expect(status).toBe(404);
+    expect(body.error).toBe("Not found");
+  });
+});
+
+describe("Cache-Control headers", () => {
+  test("200 responses have cache headers", async () => {
+    const { status, headers } = await get("/api/sectors");
+    expect(status).toBe(200);
+    const cc = headers.get("Cache-Control");
+    expect(cc).toContain("public");
+    expect(cc).toContain("max-age=");
+  });
+
+  test("error responses do not have cache headers", async () => {
+    const { status, headers } = await get("/api/naics/000000");
+    expect(status).toBe(404);
+    expect(headers.get("Cache-Control")).toBeNull();
   });
 });
