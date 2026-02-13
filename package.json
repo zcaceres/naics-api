@@ -7,6 +7,9 @@
     "dev": "bun --hot src/index.ts",
     "start": "bun src/index.ts",
     "build-db": "bun scripts/build-db.ts",
+    "build-db:2022": "bun scripts/build-db.ts 2022",
+    "build-db:2017": "bun scripts/build-db.ts 2017",
+    "build-db:2012": "bun scripts/build-db.ts 2012",
     "test": "bun test"
   },
   "devDependencies": {

@@ -1,8 +1,9 @@
 import { Hono } from "hono";
-import { search } from "../db";
+import { getDb } from "../db";
+import type { AppEnv } from "../types";
 import { parsePagination, parseLevel, classifySearchError } from "../params";
 
-const searchRoute = new Hono();
+const searchRoute = new Hono<AppEnv>();
 
 searchRoute.get("/search", (c) => {
   const q = c.req.query("q");
@@ -21,7 +22,8 @@ searchRoute.get("/search", (c) => {
   }
 
   try {
-    const { data, total } = search(q, limit, offset, levelResult.value);
+    const db = getDb(c.get("year"));
+    const { data, total } = db.search(q, limit, offset, levelResult.value);
     return c.json({ data, meta: { total, limit, offset } });
   } catch (error) {
     if (classifySearchError(error) === "invalid_syntax") {

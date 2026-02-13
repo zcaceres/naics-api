@@ -1,6 +1,6 @@
 # NAICS Code API
 
-Free, self-hosted REST API for 2022 NAICS (North American Industry Classification System) codes. Built with [Bun](https://bun.sh) and SQLite.
+Free, self-hosted REST API for NAICS (North American Industry Classification System) codes. Supports **2022**, **2017**, and **2012** revisions. Built with [Bun](https://bun.sh) and SQLite.
 
 Data sourced from the [U.S. Census Bureau](https://www.census.gov/naics/).
 
@@ -8,8 +8,16 @@ Data sourced from the [U.S. Census Bureau](https://www.census.gov/naics/).
 
 ```bash
 bun install
-bun run build-db    # downloads Census XLSX files and builds SQLite database
+bun run build-db    # downloads Census XLSX files and builds SQLite databases (all years)
 bun run dev         # starts server with hot reload on http://localhost:3456
+```
+
+To build a single year:
+
+```bash
+bun run build-db:2022   # only 2022
+bun run build-db:2017   # only 2017
+bun run build-db:2012   # only 2012
 ```
 
 ## Scripts
@@ -18,22 +26,47 @@ bun run dev         # starts server with hot reload on http://localhost:3456
 |--------|---------|-------------|
 | `bun run dev` | `bun --hot src/index.ts` | Start dev server with hot reload |
 | `bun run start` | `bun src/index.ts` | Start production server |
-| `bun run build-db` | `bun scripts/build-db.ts` | Download Census data and build SQLite DB |
+| `bun run build-db` | `bun scripts/build-db.ts` | Download Census data and build all year DBs |
+| `bun run build-db:2022` | `bun scripts/build-db.ts 2022` | Build 2022 database only |
+| `bun run build-db:2017` | `bun scripts/build-db.ts 2017` | Build 2017 database only |
+| `bun run build-db:2012` | `bun scripts/build-db.ts 2012` | Build 2012 database only |
 | `bun test` | | Run all tests |
 
 ## Database Setup
 
-The database is not checked into the repo. Run `bun run build-db` to create it. This will:
+The databases are not checked into the repo. Run `bun run build-db` to create them. This will, for each year:
 
-1. Download 4 XLSX files from Census.gov into `data/xlsx/`
+1. Download 4 XLSX files from Census.gov into `data/xlsx/{year}/`
 2. Parse codes, descriptions, index entries, and cross-references
-3. Build `data/naics.db` with FTS5 full-text search index
+3. Build `data/naics-{year}.db` with FTS5 full-text search index
 
 The download is cached — re-running skips files already in `data/xlsx/`.
+
+## Multi-Year Support
+
+All endpoints accept an optional year prefix: `/api/{year}/...`. Unprefixed routes default to **2022**.
+
+Supported years: `2022`, `2017`, `2012`
+
+```bash
+# Default (2022)
+curl http://localhost:3456/api/naics/722511
+
+# Explicit 2022
+curl http://localhost:3456/api/2022/naics/722511
+
+# 2017 revision
+curl http://localhost:3456/api/2017/naics/722511
+
+# 2012 revision
+curl http://localhost:3456/api/2012/sectors
+```
 
 ## API Endpoints
 
 All responses use `{ data, meta? }` for success and `{ error }` for errors.
+
+All endpoints below are shown without year prefix. Prepend `/api/{year}` for a specific revision (e.g. `/api/2017/sectors`).
 
 ### Codes
 
@@ -74,14 +107,20 @@ All responses use `{ data, meta? }` for success and `{ error }` for errors.
 ## Examples
 
 ```bash
-# Look up Full-Service Restaurants
+# Look up Full-Service Restaurants (default: 2022)
 curl http://localhost:3456/api/naics/722511
+
+# Look up in 2017 revision
+curl http://localhost:3456/api/2017/naics/722511
 
 # Get children of Accommodation and Food Services
 curl http://localhost:3456/api/naics/72/children
 
 # Search for "restaurant"
 curl "http://localhost:3456/api/search?q=restaurant"
+
+# Search 2012 data
+curl "http://localhost:3456/api/2012/search?q=restaurant"
 
 # Search for 6-digit codes only
 curl "http://localhost:3456/api/search?q=restaurant&level=6"
@@ -112,7 +151,8 @@ Some sectors use range codes: `31-33` (Manufacturing), `44-45` (Retail Trade), `
 ```
 src/
   index.ts              Server entry point
-  db.ts                 Database queries
+  db.ts                 Database factory (per-year connections)
+  types.ts              Shared types and year constants
   params.ts             Request parsing and validation (pure)
   transforms.ts         Data transformations (pure)
   openapi.json          OpenAPI 3.0 spec
@@ -121,13 +161,16 @@ src/
     search.ts           Full-text search route
     helpers.ts          Shared route utilities
 scripts/
-  build-db.ts           Census data downloader and DB builder
+  build-db.ts           Census data downloader and DB builder (multi-year)
 tests/
   params.test.ts        Param parsing tests
   transforms.test.ts    Data transformation tests
-  routes.test.ts        Integration tests
+  routes.test.ts        Integration tests (default routes)
+  multi-year.test.ts    Multi-year route tests
 data/
-  naics.db              SQLite database (generated, not in git)
+  naics-2022.db         SQLite database for 2022 (generated)
+  naics-2017.db         SQLite database for 2017 (generated)
+  naics-2012.db         SQLite database for 2012 (generated)
   xlsx/                 Census source files (downloaded, not in git)
 ```
 

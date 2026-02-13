@@ -1,12 +1,13 @@
 import { Hono } from "hono";
 import type { Context, Next } from "hono";
-import { getChildren, getAncestors, getDescendants, getSectors, getCrossReferences, getIndexEntries, getCodesBatch } from "../db";
+import { getDb } from "../db";
+import type { AppEnv } from "../types";
 import { isValidNaicsFormat, parsePagination, parseCodesList } from "../params";
 import { requireCode } from "./helpers";
 
-const codes = new Hono();
+const codes = new Hono<AppEnv>();
 
-const validateCode = async (c: Context, next: Next) => {
+const validateCode = async (c: Context<AppEnv>, next: Next) => {
   const code = c.req.param("code");
   if (!isValidNaicsFormat(code)) {
     return c.json({ error: "Invalid NAICS code format" }, 400);
@@ -18,7 +19,8 @@ codes.use("/naics/:code", validateCode);
 codes.use("/naics/:code/*", validateCode);
 
 codes.get("/sectors", (c) => {
-  return c.json({ data: getSectors() });
+  const db = getDb(c.get("year"));
+  return c.json({ data: db.getSectors() });
 });
 
 codes.get("/naics", (c) => {
@@ -26,7 +28,8 @@ codes.get("/naics", (c) => {
   if (!result.ok) {
     return c.json({ error: result.error }, 400);
   }
-  return c.json({ data: getCodesBatch(result.codes) });
+  const db = getDb(c.get("year"));
+  return c.json({ data: db.getCodesBatch(result.codes) });
 });
 
 codes.get("/naics/:code", (c) => {
@@ -38,13 +41,15 @@ codes.get("/naics/:code", (c) => {
 codes.get("/naics/:code/children", (c) => {
   const result = requireCode(c);
   if (result instanceof Response) return result;
-  return c.json({ data: getChildren(result.code) });
+  const db = getDb(c.get("year"));
+  return c.json({ data: db.getChildren(result.code) });
 });
 
 codes.get("/naics/:code/ancestors", (c) => {
   const result = requireCode(c);
   if (result instanceof Response) return result;
-  return c.json({ data: getAncestors(result.code) });
+  const db = getDb(c.get("year"));
+  return c.json({ data: db.getAncestors(result.code) });
 });
 
 codes.get("/naics/:code/descendants", (c) => {
@@ -56,20 +61,23 @@ codes.get("/naics/:code/descendants", (c) => {
     maxLimit: 500,
   });
 
-  const { data, total } = getDescendants(result.code, limit, offset);
+  const db = getDb(c.get("year"));
+  const { data, total } = db.getDescendants(result.code, limit, offset);
   return c.json({ data, meta: { total, limit, offset } });
 });
 
 codes.get("/naics/:code/cross-references", (c) => {
   const result = requireCode(c);
   if (result instanceof Response) return result;
-  return c.json({ data: getCrossReferences(result.code) });
+  const db = getDb(c.get("year"));
+  return c.json({ data: db.getCrossReferences(result.code) });
 });
 
 codes.get("/naics/:code/index-entries", (c) => {
   const result = requireCode(c);
   if (result instanceof Response) return result;
-  return c.json({ data: getIndexEntries(result.code) });
+  const db = getDb(c.get("year"));
+  return c.json({ data: db.getIndexEntries(result.code) });
 });
 
 export default codes;

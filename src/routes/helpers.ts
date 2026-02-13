@@ -1,9 +1,11 @@
 import type { Context } from "hono";
-import { getCode, type NaicsCode } from "../db";
+import { getDb } from "../db";
+import type { NaicsCode, AppEnv } from "../types";
 
-export function requireCode(c: Context): NaicsCode | Response {
+export function requireCode(c: Context<AppEnv>): NaicsCode | Response {
   const code = c.req.param("code");
-  const result = getCode(code);
+  const db = getDb(c.get("year"));
+  const result = db.getCode(code);
   if (!result) {
     return c.json({ error: "Code not found" }, 404);
   }
