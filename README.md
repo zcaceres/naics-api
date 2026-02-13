@@ -4,6 +4,10 @@ Free, self-hosted REST API for NAICS (North American Industry Classification Sys
 
 Data sourced from the [U.S. Census Bureau](https://www.census.gov/naics/).
 
+## Prerequisites
+
+- [Bun](https://bun.sh) v1.0+
+
 ## Quick Start
 
 ```bash
@@ -64,8 +68,6 @@ curl http://localhost:3456/api/2012/sectors
 
 ## API Endpoints
 
-All responses use `{ data, meta? }` for success and `{ error }` for errors.
-
 All endpoints below are shown without year prefix. Prepend `/api/{year}` for a specific revision (e.g. `/api/2017/sectors`).
 
 ### Codes
@@ -103,6 +105,60 @@ All endpoints below are shown without year prefix. Prepend `/api/{year}` for a s
 |----------|-------------|
 | `GET /api/openapi.json` | OpenAPI 3.0 specification |
 | `GET /` | API overview with all endpoints and examples |
+
+## Response Format
+
+**Success** responses return `{ data, meta? }`:
+
+```json
+{
+  "data": {
+    "code": "722511",
+    "title": "Full-Service Restaurants",
+    "description": "...",
+    "level": 6,
+    "parent_code": "72251"
+  }
+}
+```
+
+Paginated endpoints include `meta`:
+
+```json
+{
+  "data": [...],
+  "meta": { "total": 245, "limit": 20, "offset": 0 }
+}
+```
+
+**Error** responses return `{ error }` with appropriate HTTP status:
+
+```json
+{ "error": "Code not found" }
+```
+
+| Status | Meaning |
+|--------|---------|
+| 200 | Success |
+| 400 | Invalid input (bad code format, missing params, invalid search syntax) |
+| 404 | Code not found or unknown route |
+| 500 | Server error |
+
+## Search Syntax
+
+The search endpoint uses SQLite FTS5 with Porter stemming. Queries support:
+
+- **Simple terms**: `restaurant` — matches stemmed variants (e.g. "restaurants")
+- **Phrases**: `"full service"` — matches exact phrase
+- **AND** (default): `restaurant bar` — both terms must appear
+- **OR**: `restaurant OR bar` — either term
+- **NOT**: `restaurant NOT bar` — exclude term
+- **Prefix**: `rest*` — prefix matching
+
+## Caching and CORS
+
+- **CORS** is enabled on all routes.
+- **Cache-Control** headers are set on all 200 responses: `public, max-age=86400, s-maxage=604800` (1 day browser, 7 days CDN). Error responses are not cached.
 
 ## Examples
 
@@ -173,6 +229,10 @@ data/
   naics-2012.db         SQLite database for 2012 (generated)
   xlsx/                 Census source files (downloaded, not in git)
 ```
+
+## Backward Compatibility
+
+If you previously used a single `data/naics.db` file (pre-multi-year), the server will automatically use it as the 2022 database when `data/naics-2022.db` doesn't exist. No migration needed.
 
 ## License
 
