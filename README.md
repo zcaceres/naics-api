@@ -238,4 +238,4 @@ If you previously used a single `data/naics.db` file (pre-multi-year), the serve
 
 ## License
 
-Public domain. NAICS data is published by the U.S. Census Bureau.
+MIT. See [LICENSE](LICENSE). NAICS data is public domain, published by the U.S. Census Bureau.
