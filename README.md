@@ -84,13 +84,13 @@ All endpoints below are shown without year prefix. Prepend `/api/{year}` for a s
 |----------|-------------|
 | `GET /api/naics/:code/children` | Direct children of a code |
 | `GET /api/naics/:code/ancestors` | Full ancestor chain up to sector |
-| `GET /api/naics/:code/descendants?limit=100&offset=0` | All codes below (paginated, max 500) |
+| `GET /api/naics/:code/descendants?limit=100&offset=0` | All codes below (paginated, max 500, integer params only) |
 
 ### Search
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/search?q=:query&limit=20&offset=0&level=:level` | Full-text search with BM25 ranking (max 100, optional level filter 2-6) |
+| `GET /api/search?q=:query&limit=20&offset=0&level=:level` | Full-text search with BM25 ranking (max 100, integer pagination params, optional level filter 2-6) |
 
 ### Related Data
 

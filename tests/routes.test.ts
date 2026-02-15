@@ -80,6 +80,12 @@ describe("GET /api/naics/:code/descendants", () => {
       expect(item.code).not.toContain("-");
     }
   });
+
+  test("returns 400 for non-integer pagination", async () => {
+    const { status, body } = await get("/api/naics/72/descendants?offset=1.5");
+    expect(status).toBe(400);
+    expect(body.error).toContain("offset");
+  });
 });
 
 describe("GET /api/naics?codes=", () => {
@@ -131,6 +137,12 @@ describe("GET /api/search", () => {
     const { status, body } = await get("/api/search?q=restaurant&level=9");
     expect(status).toBe(400);
     expect(body.error).toContain("level");
+  });
+
+  test("returns 400 for invalid pagination", async () => {
+    const { status, body } = await get("/api/search?q=restaurant&limit=1.5");
+    expect(status).toBe(400);
+    expect(body.error).toContain("limit");
   });
 
   test("returns 400 for invalid search syntax", async () => {

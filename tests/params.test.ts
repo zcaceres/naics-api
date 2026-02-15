@@ -66,6 +66,7 @@ describe("parsePagination", () => {
 
   test("uses defaults when no params given", () => {
     expect(parsePagination(undefined, undefined, defaults)).toEqual({
+      ok: true,
       limit: 100,
       offset: 0,
     });
@@ -73,6 +74,7 @@ describe("parsePagination", () => {
 
   test("parses valid limit and offset", () => {
     expect(parsePagination("50", "10", defaults)).toEqual({
+      ok: true,
       limit: 50,
       offset: 10,
     });
@@ -80,6 +82,7 @@ describe("parsePagination", () => {
 
   test("clamps limit to max", () => {
     expect(parsePagination("1000", "0", defaults)).toEqual({
+      ok: true,
       limit: 500,
       offset: 0,
     });
@@ -87,10 +90,12 @@ describe("parsePagination", () => {
 
   test("clamps limit to minimum of 1", () => {
     expect(parsePagination("0", "0", defaults)).toEqual({
-      limit: 100,
+      ok: true,
+      limit: 1,
       offset: 0,
     });
     expect(parsePagination("-5", "0", defaults)).toEqual({
+      ok: true,
       limit: 1,
       offset: 0,
     });
@@ -98,20 +103,34 @@ describe("parsePagination", () => {
 
   test("clamps negative offset to 0", () => {
     expect(parsePagination("10", "-5", defaults)).toEqual({
+      ok: true,
       limit: 10,
       offset: 0,
     });
   });
 
-  test("handles NaN values", () => {
-    expect(parsePagination("abc", "xyz", defaults)).toEqual({
-      limit: 100,
-      offset: 0,
+  test("rejects non-integer values", () => {
+    expect(parsePagination("abc", "0", defaults)).toEqual({
+      ok: false,
+      error: "Invalid 'limit': must be an integer",
+    });
+    expect(parsePagination("1.5", "0", defaults)).toEqual({
+      ok: false,
+      error: "Invalid 'limit': must be an integer",
+    });
+    expect(parsePagination("10", "xyz", defaults)).toEqual({
+      ok: false,
+      error: "Invalid 'offset': must be an integer",
+    });
+    expect(parsePagination("10", "1.5", defaults)).toEqual({
+      ok: false,
+      error: "Invalid 'offset': must be an integer",
     });
   });
 
   test("works with different defaults", () => {
     expect(parsePagination(undefined, undefined, { defaultLimit: 20, maxLimit: 100 })).toEqual({
+      ok: true,
       limit: 20,
       offset: 0,
     });
