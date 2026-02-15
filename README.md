@@ -103,7 +103,7 @@ All endpoints below are shown without year prefix. Prepend `/api/{year}` for a s
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/openapi.json` | OpenAPI 3.0 specification |
+| `GET /api/openapi.json` | OpenAPI 3.0 specification (same spec at all year prefixes — API shape is identical across years) |
 | `GET /` | API overview with all endpoints and examples |
 
 ## Response Format
