@@ -3,18 +3,51 @@ import { cors } from "hono/cors";
 import codes from "./routes/codes";
 import search from "./routes/search";
 import spec from "./openapi.json";
+import { SUPPORTED_YEARS, DEFAULT_YEAR, type AppEnv } from "./types";
+import { hasDb } from "./db";
 
-const app = new Hono();
+const app = new Hono<AppEnv>();
 
 app.use("*", cors());
+
+// Static data — cache aggressively
+app.use("/api/*", async (c, next) => {
+  await next();
+  if (c.res.status === 200) {
+    c.res.headers.set("Cache-Control", "public, max-age=86400, s-maxage=604800");
+  }
+});
+
+// Year-prefixed routes — register first so /api/2017/... matches before default
+for (const year of SUPPORTED_YEARS) {
+  app.use(`/api/${year}/*`, async (c, next) => {
+    if (!hasDb(year)) {
+      return c.json({ error: `Data for year ${year} is not available. Build it with: bun run build-db ${year}` }, 404);
+    }
+    c.set("year", year);
+    await next();
+  });
+  app.get(`/api/${year}/openapi.json`, (c) => c.json(spec));
+  app.route(`/api/${year}`, codes);
+  app.route(`/api/${year}`, search);
+}
+
+// Default routes → year 2022
+app.use("/api/*", async (c, next) => {
+  if (c.get("year") === undefined) c.set("year", DEFAULT_YEAR);
+  await next();
+});
 
 app.get("/", (c) => {
   return c.json({
     name: "NAICS Code API",
-    version: "2.1.0",
-    description: "Free API for 2022 NAICS (North American Industry Classification System) codes",
+    version: "3.0.0",
+    description: "Free API for NAICS (North American Industry Classification System) codes",
     source: "U.S. Census Bureau",
+    supportedYears: SUPPORTED_YEARS,
+    defaultYear: DEFAULT_YEAR,
     responseFormat: "All responses use { data, meta? } for success, { error } for errors",
+    yearPrefixing: "All endpoints accept an optional year prefix: /api/{year}/... (e.g. /api/2017/sectors). Unprefixed routes default to 2022.",
     endpoints: {
       "GET /api/sectors": "List all 20 top-level NAICS sectors",
       "GET /api/naics?codes=:code1,:code2,...": "Batch lookup multiple NAICS codes (max 50)",
@@ -29,6 +62,7 @@ app.get("/", (c) => {
     },
     examples: {
       lookup: "/api/naics/722511",
+      lookupByYear: "/api/2017/naics/722511",
       batchLookup: "/api/naics?codes=722511,722513,111110",
       children: "/api/naics/72/children",
       ancestors: "/api/naics/722511/ancestors",
@@ -37,6 +71,7 @@ app.get("/", (c) => {
       indexEntries: "/api/naics/722511/index-entries",
       search: "/api/search?q=restaurant",
       searchByLevel: "/api/search?q=restaurant&level=6",
+      searchByYear: "/api/2012/search?q=restaurant",
     },
   });
 });
@@ -47,6 +82,10 @@ app.get("/api/openapi.json", (c) => {
 
 app.route("/api", codes);
 app.route("/api", search);
+
+app.notFound((c) => {
+  return c.json({ error: "Not found" }, 404);
+});
 
 export default {
   port: 3456,

@@ -2,11 +2,16 @@
   "openapi": "3.0.3",
   "info": {
     "title": "NAICS Code API",
-    "version": "2.1.0",
-    "description": "Free API for 2022 NAICS (North American Industry Classification System) codes. All successful responses use { data, meta? } envelope. Errors use { error }.",
+    "version": "3.0.0",
+    "description": "Free API for NAICS (North American Industry Classification System) codes. Supports 2022, 2017, and 2012 revisions. All endpoints accept an optional year prefix: /api/{year}/... (e.g. /api/2017/sectors). Unprefixed routes default to 2022. All successful responses use { data, meta? } envelope. Errors use { error }.",
     "license": { "name": "Public Domain" }
   },
-  "servers": [{ "url": "/api" }],
+  "servers": [
+    { "url": "/api", "description": "Default (2022)" },
+    { "url": "/api/2022", "description": "2022 NAICS revision" },
+    { "url": "/api/2017", "description": "2017 NAICS revision" },
+    { "url": "/api/2012", "description": "2012 NAICS revision" }
+  ],
   "paths": {
     "/sectors": {
       "get": {
