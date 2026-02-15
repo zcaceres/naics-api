@@ -162,6 +162,8 @@ The search endpoint uses SQLite FTS5 with Porter stemming. Queries support:
 
 ## Examples
 
+See [EXAMPLES.md](EXAMPLES.md) for detailed request/response examples with real data.
+
 ```bash
 # Look up Full-Service Restaurants (default: 2022)
 curl http://localhost:3456/api/naics/722511
