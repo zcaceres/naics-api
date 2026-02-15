@@ -56,14 +56,23 @@ codes.get("/naics/:code/descendants", (c) => {
   const result = requireCode(c);
   if (result instanceof Response) return result;
 
-  const { limit, offset } = parsePagination(c.req.query("limit"), c.req.query("offset"), {
+  const pagination = parsePagination(c.req.query("limit"), c.req.query("offset"), {
     defaultLimit: 100,
     maxLimit: 500,
   });
+  if (!pagination.ok) {
+    return c.json({ error: pagination.error }, 400);
+  }
+  const { limit, offset } = pagination;
 
-  const db = getDb(c.get("year"));
-  const { data, total } = db.getDescendants(result.code, limit, offset);
-  return c.json({ data, meta: { total, limit, offset } });
+  try {
+    const db = getDb(c.get("year"));
+    const { data, total } = db.getDescendants(result.code, limit, offset);
+    return c.json({ data, meta: { total, limit, offset } });
+  } catch (error) {
+    console.error("Descendants error:", error);
+    return c.json({ error: "Failed to fetch descendants" }, 500);
+  }
 });
 
 codes.get("/naics/:code/cross-references", (c) => {

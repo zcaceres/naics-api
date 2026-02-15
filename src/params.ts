@@ -9,10 +9,25 @@ export function parsePagination(
   limitStr: string | undefined,
   offsetStr: string | undefined,
   defaults: { defaultLimit: number; maxLimit: number }
-): { limit: number; offset: number } {
-  const limit = Math.max(1, Math.min(Number(limitStr) || defaults.defaultLimit, defaults.maxLimit));
-  const offset = Math.max(0, Number(offsetStr) || 0);
-  return { limit, offset };
+): { ok: true; limit: number; offset: number } | { ok: false; error: string } {
+  const parsedLimit = parseOptionalInteger(limitStr);
+  if (!parsedLimit.ok) return { ok: false, error: "Invalid 'limit': must be an integer" };
+
+  const parsedOffset = parseOptionalInteger(offsetStr);
+  if (!parsedOffset.ok) return { ok: false, error: "Invalid 'offset': must be an integer" };
+
+  const limit = Math.max(1, Math.min(parsedLimit.value ?? defaults.defaultLimit, defaults.maxLimit));
+  const offset = Math.max(0, parsedOffset.value ?? 0);
+  return { ok: true, limit, offset };
+}
+
+function parseOptionalInteger(
+  value: string | undefined
+): { ok: true; value: number | undefined } | { ok: false } {
+  if (value === undefined) return { ok: true, value: undefined };
+  const trimmed = value.trim();
+  if (!/^-?\d+$/.test(trimmed)) return { ok: false };
+  return { ok: true, value: Number(trimmed) };
 }
 
 export function parseLevel(

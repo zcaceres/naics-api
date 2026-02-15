@@ -11,10 +11,14 @@ searchRoute.get("/search", (c) => {
     return c.json({ error: "Missing query parameter 'q'" }, 400);
   }
 
-  const { limit, offset } = parsePagination(c.req.query("limit"), c.req.query("offset"), {
+  const pagination = parsePagination(c.req.query("limit"), c.req.query("offset"), {
     defaultLimit: 20,
     maxLimit: 100,
   });
+  if (!pagination.ok) {
+    return c.json({ error: pagination.error }, 400);
+  }
+  const { limit, offset } = pagination;
 
   const levelResult = parseLevel(c.req.query("level"));
   if (!levelResult.ok) {

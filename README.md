@@ -84,13 +84,13 @@ All endpoints below are shown without year prefix. Prepend `/api/{year}` for a s
 |----------|-------------|
 | `GET /api/naics/:code/children` | Direct children of a code |
 | `GET /api/naics/:code/ancestors` | Full ancestor chain up to sector |
-| `GET /api/naics/:code/descendants?limit=100&offset=0` | All codes below (paginated, max 500) |
+| `GET /api/naics/:code/descendants?limit=100&offset=0` | All codes below (paginated, max 500, integer params only) |
 
 ### Search
 
 | Endpoint | Description |
 |----------|-------------|
-| `GET /api/search?q=:query&limit=20&offset=0&level=:level` | Full-text search with BM25 ranking (max 100, optional level filter 2-6) |
+| `GET /api/search?q=:query&limit=20&offset=0&level=:level` | Full-text search with BM25 ranking (max 100, integer pagination params, optional level filter 2-6) |
 
 ### Related Data
 
@@ -161,6 +161,8 @@ The search endpoint uses SQLite FTS5 with Porter stemming. Queries support:
 - **Cache-Control** headers are set on all 200 responses: `public, max-age=86400, s-maxage=604800` (1 day browser, 7 days CDN). Error responses are not cached.
 
 ## Examples
+
+See [EXAMPLES.md](EXAMPLES.md) for detailed request/response examples with real data.
 
 ```bash
 # Look up Full-Service Restaurants (default: 2022)
@@ -236,4 +238,4 @@ If you previously used a single `data/naics.db` file (pre-multi-year), the serve
 
 ## License
 
-Public domain. NAICS data is published by the U.S. Census Bureau.
+MIT. See [LICENSE](LICENSE). NAICS data is public domain, published by the U.S. Census Bureau.

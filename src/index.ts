@@ -34,7 +34,15 @@ for (const year of SUPPORTED_YEARS) {
 
 // Default routes → year 2022
 app.use("/api/*", async (c, next) => {
-  if (c.get("year") === undefined) c.set("year", DEFAULT_YEAR);
+  if (c.get("year") === undefined) {
+    c.set("year", DEFAULT_YEAR);
+    if (!hasDb(DEFAULT_YEAR)) {
+      return c.json(
+        { error: `Data for year ${DEFAULT_YEAR} is not available. Build it with: bun run build-db ${DEFAULT_YEAR}` },
+        404
+      );
+    }
+  }
   await next();
 });
 
