@@ -5,7 +5,8 @@
   "main": "src/lib.ts",
   "type": "module",
   "bin": {
-    "naics": "src/cli.ts"
+    "naics": "src/cli.ts",
+    "naics-mcp": "src/mcp.ts"
   },
   "scripts": {
     "dev": "bun --hot src/index.ts",
@@ -15,6 +16,7 @@
     "build-db:2022": "bun scripts/build-db.ts 2022",
     "build-db:2017": "bun scripts/build-db.ts 2017",
     "build-db:2012": "bun scripts/build-db.ts 2012",
+    "build:mcp": "bun build src/mcp.ts --compile --outfile dist/naics-mcp",
     "test": "bun test"
   },
   "devDependencies": {
@@ -25,6 +27,8 @@
     "typescript": "^5"
   },
   "dependencies": {
-    "hono": "^4.11.9"
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "hono": "^4.11.9",
+    "zod": "^4.3.6"
   }
 }
