@@ -24,13 +24,13 @@ function createDatabase(dbPath: string): NaicsDatabase {
 
   const stmts = {
     getCode: db.prepare<NaicsCode, [string]>(
-      "SELECT code, title, description, level, parent_code FROM codes WHERE code = ?"
+      "SELECT code, title, NULLIF(description, 'NULL') as description, level, parent_code FROM codes WHERE code = ?"
     ),
     getChildren: db.prepare<NaicsCode, [string]>(
-      "SELECT code, title, description, level, parent_code FROM codes WHERE parent_code = ? ORDER BY code"
+      "SELECT code, title, NULLIF(description, 'NULL') as description, level, parent_code FROM codes WHERE parent_code = ? ORDER BY code"
     ),
     getDescendants: db.prepare<NaicsCode, [string, string, number, number]>(
-      `SELECT code, title, description, level, parent_code FROM codes
+      `SELECT code, title, NULLIF(description, 'NULL') as description, level, parent_code FROM codes
        WHERE code LIKE ? AND code != ?
        ORDER BY code
        LIMIT ? OFFSET ?`
@@ -40,13 +40,16 @@ function createDatabase(dbPath: string): NaicsDatabase {
        WHERE code LIKE ? AND code != ?`
     ),
     getSectors: db.prepare<NaicsCode, []>(
-      "SELECT code, title, description, level, parent_code FROM codes WHERE parent_code IS NULL ORDER BY code"
+      "SELECT code, title, NULLIF(description, 'NULL') as description, level, parent_code FROM codes WHERE parent_code IS NULL ORDER BY code"
     ),
     search: db.prepare<SearchResult, [string, number, number]>(
-      `SELECT code, title, description, bm25(codes_fts, 0.0, 10.0, 1.0, 5.0) as rank
-       FROM codes_fts
+      `SELECT f.code, f.title, NULLIF(f.description, 'NULL') as description,
+              (-1 * bm25(codes_fts, 0.0, 10.0, 1.0, 5.0)) as rank,
+              c.level, c.parent_code
+       FROM codes_fts f
+       JOIN codes c ON c.code = f.code
        WHERE codes_fts MATCH ?
-       ORDER BY rank
+       ORDER BY bm25(codes_fts, 0.0, 10.0, 1.0, 5.0)
        LIMIT ? OFFSET ?`
     ),
     countSearch: db.prepare<{ count: number }, [string]>(
@@ -59,12 +62,14 @@ function createDatabase(dbPath: string): NaicsDatabase {
       "SELECT id, code, entry FROM index_entries WHERE code = ? ORDER BY id"
     ),
     searchByLevel: db.prepare<SearchResult, [string, number, number, number]>(
-      `SELECT f.code, f.title, f.description, bm25(codes_fts, 0.0, 10.0, 1.0, 5.0) as rank
+      `SELECT f.code, f.title, NULLIF(f.description, 'NULL') as description,
+              (-1 * bm25(codes_fts, 0.0, 10.0, 1.0, 5.0)) as rank,
+              c.level, c.parent_code
        FROM codes_fts f
        JOIN codes c ON c.code = f.code
        WHERE codes_fts MATCH ?
        AND c.level = ?
-       ORDER BY rank
+       ORDER BY bm25(codes_fts, 0.0, 10.0, 1.0, 5.0)
        LIMIT ? OFFSET ?`
     ),
     countSearchByLevel: db.prepare<{ count: number }, [string, number]>(
@@ -112,7 +117,7 @@ function createDatabase(dbPath: string): NaicsDatabase {
       const total = countStmt.get(...likeParams, code)?.count ?? 0;
 
       const dataStmt = db.prepare<NaicsCode, string[]>(
-        `SELECT code, title, description, level, parent_code FROM codes
+        `SELECT code, title, NULLIF(description, 'NULL') as description, level, parent_code FROM codes
          WHERE (${likeClauses}) AND code != ? AND code NOT LIKE '%-%'
          ORDER BY code
          LIMIT ? OFFSET ?`
@@ -163,7 +168,7 @@ function createDatabase(dbPath: string): NaicsDatabase {
     if (codes.length === 0) return [];
     const placeholders = codes.map(() => "?").join(",");
     const stmt = db.prepare<NaicsCode, string[]>(
-      `SELECT code, title, description, level, parent_code FROM codes WHERE code IN (${placeholders})`
+      `SELECT code, title, NULLIF(description, 'NULL') as description, level, parent_code FROM codes WHERE code IN (${placeholders})`
     );
     const results = stmt.all(...codes);
     return orderByRequestedKeys(results, codes);

@@ -29,6 +29,17 @@ for (const year of SUPPORTED_YEARS) {
   app.route(`/api/${year}`, search);
 }
 
+// Catch unsupported year-like segments
+app.use("/api/:segment/*", async (c, next) => {
+  const segment = c.req.param("segment");
+  if (/^\d{4}$/.test(segment) && !SUPPORTED_YEARS.includes(Number(segment) as NaicsYear)) {
+    return c.json({
+      error: `Unsupported year: ${segment}. Supported years: ${SUPPORTED_YEARS.join(", ")}`
+    }, 400);
+  }
+  await next();
+});
+
 // Default routes → year 2022
 app.use("/api/*", async (c, next) => {
   if (c.get("year") === undefined) {
@@ -80,8 +91,8 @@ app.get("/health", (c) => {
   for (const year of SUPPORTED_YEARS) {
     databases[String(year)] = hasDb(year as NaicsYear);
   }
-  const allAvailable = Object.values(databases).every(Boolean);
-  return c.json({ status: allAvailable ? "ok" : "degraded", databases }, allAvailable ? 200 : 503);
+  const defaultAvailable = databases[String(DEFAULT_YEAR)];
+  return c.json({ status: defaultAvailable ? "ok" : "degraded", databases }, defaultAvailable ? 200 : 503);
 });
 
 app.get("/api/openapi.json", (c) => {

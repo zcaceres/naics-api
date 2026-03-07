@@ -17,14 +17,6 @@ export function generateRangePrefixes(range: { start: number; end: number }): st
   return prefixes;
 }
 
-export function filterRangeCodes<T extends { code: string }>(results: T[]): T[] {
-  return results.filter((r) => !r.code.includes("-"));
-}
-
-export function paginateArray<T>(items: T[], offset: number, limit: number): T[] {
-  return items.slice(offset, offset + limit);
-}
-
 export function orderByRequestedKeys<T extends { code: string }>(
   results: T[],
   requestedCodes: string[]

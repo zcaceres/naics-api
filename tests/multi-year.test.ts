@@ -78,16 +78,17 @@ describe("Missing year databases", () => {
 });
 
 describe("Unsupported years", () => {
-  test("GET /api/2000/sectors returns 404", async () => {
+  test("GET /api/2000/sectors returns 400 with helpful message", async () => {
     const { status, body } = await get("/api/2000/sectors");
-    expect(status).toBe(404);
-    expect(body.error).toBe("Not found");
+    expect(status).toBe(400);
+    expect(body.error).toContain("Unsupported year: 2000");
+    expect(body.error).toContain("Supported years");
   });
 
-  test("GET /api/1999/naics/722511 returns 404", async () => {
+  test("GET /api/1999/naics/722511 returns 400 with helpful message", async () => {
     const { status, body } = await get("/api/1999/naics/722511");
-    expect(status).toBe(404);
-    expect(body.error).toBe("Not found");
+    expect(status).toBe(400);
+    expect(body.error).toContain("Unsupported year: 1999");
   });
 });
 

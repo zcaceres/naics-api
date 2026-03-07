@@ -16,8 +16,15 @@ export function parsePagination(
   const parsedOffset = parseOptionalInteger(offsetStr);
   if (!parsedOffset.ok) return { ok: false, error: "Invalid 'offset': must be an integer" };
 
-  const limit = Math.max(1, Math.min(parsedLimit.value ?? defaults.defaultLimit, defaults.maxLimit));
-  const offset = Math.max(0, parsedOffset.value ?? 0);
+  if (parsedLimit.value !== undefined && parsedLimit.value < 1) {
+    return { ok: false, error: "Invalid 'limit': must be at least 1" };
+  }
+  if (parsedOffset.value !== undefined && parsedOffset.value < 0) {
+    return { ok: false, error: "Invalid 'offset': must be non-negative" };
+  }
+
+  const limit = Math.min(parsedLimit.value ?? defaults.defaultLimit, defaults.maxLimit);
+  const offset = parsedOffset.value ?? 0;
   return { ok: true, limit, offset };
 }
 

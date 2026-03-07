@@ -88,24 +88,24 @@ describe("parsePagination", () => {
     });
   });
 
-  test("clamps limit to minimum of 1", () => {
+  test("rejects limit of 0", () => {
     expect(parsePagination("0", "0", defaults)).toEqual({
-      ok: true,
-      limit: 1,
-      offset: 0,
-    });
-    expect(parsePagination("-5", "0", defaults)).toEqual({
-      ok: true,
-      limit: 1,
-      offset: 0,
+      ok: false,
+      error: "Invalid 'limit': must be at least 1",
     });
   });
 
-  test("clamps negative offset to 0", () => {
+  test("rejects negative limit", () => {
+    expect(parsePagination("-5", "0", defaults)).toEqual({
+      ok: false,
+      error: "Invalid 'limit': must be at least 1",
+    });
+  });
+
+  test("rejects negative offset", () => {
     expect(parsePagination("10", "-5", defaults)).toEqual({
-      ok: true,
-      limit: 10,
-      offset: 0,
+      ok: false,
+      error: "Invalid 'offset': must be non-negative",
     });
   });
 

@@ -263,7 +263,7 @@ async function buildYear(config: YearConfig): Promise<void> {
     const desc = String(
       row["Description"] ?? row["NAICS Description"] ?? row["Title"] ?? ""
     ).trim();
-    if (code && desc) {
+    if (code && desc && desc.toUpperCase() !== "NULL") {
       descMap.set(code, desc);
     }
   }
