@@ -171,11 +171,11 @@ async function buildYear(config: YearConfig): Promise<void> {
   }
   const codesWb = XLSX.readFile(codesPath);
   const codesSheet = codesWb.Sheets[codesWb.SheetNames[0]];
-  const codesRows: any[] = XLSX.utils.sheet_to_json(codesSheet);
+  const codesRows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(codesSheet);
   console.log(`  Codes: ${codesRows.length} rows`);
 
   // Parse descriptions file
-  let descRows: any[] = [];
+  let descRows: Record<string, unknown>[] = [];
   const descPath = join(xlsxDir, files.descriptions.filename);
   if (existsSync(descPath)) {
     const descWb = XLSX.readFile(descPath);
@@ -187,7 +187,7 @@ async function buildYear(config: YearConfig): Promise<void> {
   }
 
   // Parse index file
-  let indexRows: any[] = [];
+  let indexRows: Record<string, unknown>[] = [];
   const indexPath = join(xlsxDir, files.index.filename);
   if (existsSync(indexPath)) {
     const indexWb = XLSX.readFile(indexPath);
@@ -199,7 +199,7 @@ async function buildYear(config: YearConfig): Promise<void> {
   }
 
   // Parse cross-references file
-  let xrefRows: any[] = [];
+  let xrefRows: Record<string, unknown>[] = [];
   const xrefPath = join(xlsxDir, files.crossReferences.filename);
   if (existsSync(xrefPath)) {
     const xrefWb = XLSX.readFile(xrefPath);
@@ -377,11 +377,11 @@ async function buildYear(config: YearConfig): Promise<void> {
   console.log("  FTS5 index built");
 
   // Print summary
-  const codeCount = db.query("SELECT COUNT(*) as count FROM codes").get() as any;
-  const indexCount = db.query("SELECT COUNT(*) as count FROM index_entries").get() as any;
-  const xrefCount = db.query("SELECT COUNT(*) as count FROM cross_references").get() as any;
-  const ftsCount = db.query("SELECT COUNT(*) as count FROM codes_fts").get() as any;
-  const sectorCount = db.query("SELECT COUNT(*) as count FROM codes WHERE parent_code IS NULL").get() as any;
+  const codeCount = db.query("SELECT COUNT(*) as count FROM codes").get() as { count: number };
+  const indexCount = db.query("SELECT COUNT(*) as count FROM index_entries").get() as { count: number };
+  const xrefCount = db.query("SELECT COUNT(*) as count FROM cross_references").get() as { count: number };
+  const ftsCount = db.query("SELECT COUNT(*) as count FROM codes_fts").get() as { count: number };
+  const sectorCount = db.query("SELECT COUNT(*) as count FROM codes WHERE parent_code IS NULL").get() as { count: number };
 
   console.log(`\n--- ${year} Summary ---`);
   console.log(`  Codes: ${codeCount.count}`);

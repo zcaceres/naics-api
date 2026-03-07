@@ -1,9 +1,20 @@
 import { Hono } from "hono";
-import { getDb } from "../db";
+import { getDb, hasDb } from "../db";
 import type { AppEnv } from "../types";
 import { parsePagination, parseLevel, classifySearchError } from "../params";
 
 const searchRoute = new Hono<AppEnv>();
+
+searchRoute.use("*", async (c, next) => {
+  const year = c.get("year");
+  if (year && !hasDb(year)) {
+    return c.json(
+      { error: `Data for year ${year} is not available. Build it with: bun run build-db ${year}` },
+      404
+    );
+  }
+  await next();
+});
 
 searchRoute.get("/search", (c) => {
   const q = c.req.query("q");

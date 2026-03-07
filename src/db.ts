@@ -1,7 +1,7 @@
 import { Database } from "bun:sqlite";
 import { join } from "path";
 import { existsSync } from "fs";
-import { parseRangeCode, generateRangePrefixes, filterRangeCodes, paginateArray, orderByRequestedKeys } from "./transforms";
+import { parseRangeCode, generateRangePrefixes, orderByRequestedKeys } from "./transforms";
 import { SUPPORTED_YEARS, DEFAULT_YEAR, type NaicsYear, type NaicsCode, type SearchResult, type CrossReference, type IndexEntry } from "./types";
 
 export type { NaicsCode, SearchResult, CrossReference, IndexEntry } from "./types";
@@ -21,7 +21,6 @@ export interface NaicsDatabase {
 
 function createDatabase(dbPath: string): NaicsDatabase {
   const db = new Database(dbPath, { readonly: true });
-  db.exec("PRAGMA journal_mode = WAL");
 
   const stmts = {
     getCode: db.prepare<NaicsCode, [string]>(
@@ -104,13 +103,22 @@ function createDatabase(dbPath: string): NaicsDatabase {
     const range = parseRangeCode(code);
     if (range) {
       const prefixes = generateRangePrefixes(range);
-      const allResults: NaicsCode[] = [];
-      for (const prefix of prefixes) {
-        const rows = stmts.getDescendants.all(prefix, code, 10000, 0);
-        allResults.push(...rows);
-      }
-      const filtered = filterRangeCodes(allResults);
-      return { data: paginateArray(filtered, offset, limit), total: filtered.length };
+      const likeClauses = prefixes.map(() => "code LIKE ?").join(" OR ");
+      const likeParams = prefixes;
+
+      const countStmt = db.prepare<{ count: number }, string[]>(
+        `SELECT COUNT(*) as count FROM codes WHERE (${likeClauses}) AND code != ? AND code NOT LIKE '%-%'`
+      );
+      const total = countStmt.get(...likeParams, code)?.count ?? 0;
+
+      const dataStmt = db.prepare<NaicsCode, string[]>(
+        `SELECT code, title, description, level, parent_code FROM codes
+         WHERE (${likeClauses}) AND code != ? AND code NOT LIKE '%-%'
+         ORDER BY code
+         LIMIT ? OFFSET ?`
+      );
+      const data = dataStmt.all(...likeParams, code, String(limit), String(offset));
+      return { data, total };
     }
 
     const countRow = stmts.countDescendants.get(`${code}%`, code);

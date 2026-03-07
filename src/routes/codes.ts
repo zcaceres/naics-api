@@ -1,11 +1,22 @@
 import { Hono } from "hono";
 import type { Context, Next } from "hono";
-import { getDb } from "../db";
+import { getDb, hasDb } from "../db";
 import type { AppEnv } from "../types";
 import { isValidNaicsFormat, parsePagination, parseCodesList } from "../params";
 import { requireCode } from "./helpers";
 
 const codes = new Hono<AppEnv>();
+
+codes.use("*", async (c, next) => {
+  const year = c.get("year");
+  if (year && !hasDb(year)) {
+    return c.json(
+      { error: `Data for year ${year} is not available. Build it with: bun run build-db ${year}` },
+      404
+    );
+  }
+  await next();
+});
 
 const validateCode = async (c: Context<AppEnv>, next: Next) => {
   const code = c.req.param("code");
