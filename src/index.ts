@@ -3,7 +3,8 @@ import { cors } from "hono/cors";
 import codes from "./routes/codes";
 import search from "./routes/search";
 import spec from "./openapi.json";
-import { SUPPORTED_YEARS, DEFAULT_YEAR, type AppEnv } from "./types";
+import { SUPPORTED_YEARS, DEFAULT_YEAR, type AppEnv, type NaicsYear } from "./types";
+import { hasDb } from "./db";
 
 const app = new Hono<AppEnv>();
 
@@ -72,6 +73,15 @@ app.get("/", (c) => {
       searchByYear: "/api/2012/search?q=restaurant",
     },
   });
+});
+
+app.get("/health", (c) => {
+  const databases: Record<string, boolean> = {};
+  for (const year of SUPPORTED_YEARS) {
+    databases[String(year)] = hasDb(year as NaicsYear);
+  }
+  const allAvailable = Object.values(databases).every(Boolean);
+  return c.json({ status: allAvailable ? "ok" : "degraded", databases }, allAvailable ? 200 : 503);
 });
 
 app.get("/api/openapi.json", (c) => {
