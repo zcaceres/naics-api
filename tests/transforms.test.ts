@@ -2,8 +2,6 @@ import { test, expect, describe } from "bun:test";
 import {
   parseRangeCode,
   generateRangePrefixes,
-  filterRangeCodes,
-  paginateArray,
   orderByRequestedKeys,
 } from "../src/transforms";
 
@@ -48,62 +46,6 @@ describe("generateRangePrefixes", () => {
 
   test("generates prefixes for 44-45", () => {
     expect(generateRangePrefixes({ start: 44, end: 45 })).toEqual(["44%", "45%"]);
-  });
-});
-
-describe("filterRangeCodes", () => {
-  test("removes codes with hyphens", () => {
-    const input = [
-      { code: "31", title: "a" },
-      { code: "31-33", title: "b" },
-      { code: "311", title: "c" },
-    ];
-    expect(filterRangeCodes(input)).toEqual([
-      { code: "31", title: "a" },
-      { code: "311", title: "c" },
-    ]);
-  });
-
-  test("returns empty for all hyphenated", () => {
-    const input = [{ code: "31-33" }, { code: "44-45" }];
-    expect(filterRangeCodes(input as any)).toEqual([]);
-  });
-
-  test("returns all if none hyphenated", () => {
-    const input = [{ code: "31" }, { code: "311" }];
-    expect(filterRangeCodes(input as any)).toEqual(input);
-  });
-
-  test("handles empty array", () => {
-    expect(filterRangeCodes([])).toEqual([]);
-  });
-});
-
-describe("paginateArray", () => {
-  const items = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-  test("basic pagination", () => {
-    expect(paginateArray(items, 0, 3)).toEqual([1, 2, 3]);
-  });
-
-  test("with offset", () => {
-    expect(paginateArray(items, 3, 3)).toEqual([4, 5, 6]);
-  });
-
-  test("offset past end returns empty", () => {
-    expect(paginateArray(items, 20, 5)).toEqual([]);
-  });
-
-  test("limit exceeding remaining items", () => {
-    expect(paginateArray(items, 8, 5)).toEqual([9, 10]);
-  });
-
-  test("empty array", () => {
-    expect(paginateArray([], 0, 10)).toEqual([]);
-  });
-
-  test("offset 0, limit covers all", () => {
-    expect(paginateArray(items, 0, 100)).toEqual(items);
   });
 });
 

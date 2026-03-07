@@ -17,6 +17,8 @@ export interface SearchResult {
   title: string;
   description: string | null;
   rank: number;
+  level: number;
+  parent_code: string | null;
 }
 
 export interface CrossReference {

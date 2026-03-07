@@ -1,11 +1,16 @@
 {
   "name": "naics",
-  "module": "index.ts",
+  "version": "1.0.0",
+  "module": "src/lib.ts",
+  "main": "src/lib.ts",
   "type": "module",
-  "private": true,
+  "bin": {
+    "naics": "src/cli.ts"
+  },
   "scripts": {
     "dev": "bun --hot src/index.ts",
     "start": "bun src/index.ts",
+    "build": "bun build src/cli.ts --compile --outfile dist/naics",
     "build-db": "bun scripts/build-db.ts",
     "build-db:2022": "bun scripts/build-db.ts 2022",
     "build-db:2017": "bun scripts/build-db.ts 2017",
