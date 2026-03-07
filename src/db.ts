@@ -187,7 +187,10 @@ function createDatabase(dbPath: string): NaicsDatabase {
   };
 }
 
-const DATA_DIR = join(import.meta.dir, "..", "data");
+const DATA_DIR = process.env.NAICS_DATA_DIR
+  ?? (existsSync(join(import.meta.dir, "..", "data"))
+    ? join(import.meta.dir, "..", "data")
+    : join(process.env.HOME ?? "~", ".naics", "data"));
 const databases = new Map<NaicsYear, NaicsDatabase>();
 
 for (const year of SUPPORTED_YEARS) {
